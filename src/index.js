@@ -1,8 +1,10 @@
 import { createStore } from "redux";
-import Store from "./reducers";
+import Reducer from "./reducers";
 import ReactDOM from "react-dom";
 import "./styles.css";
 import { Component } from "react";
+import { createContext, useContext } from "react";
+const Store = createContext();
 
 const Todo = ({ completed, onClick, text }) => (
   <li
@@ -49,7 +51,8 @@ const Link = ({ active, onClick, children }) => {
 
 class FilterLink extends Component {
   componentDidMount() {
-    this.unsubscribe = this.props.store.subscribe(() => {
+    const store = this.context;
+    this.unsubscribe = store.subscribe(() => {
       this.forceUpdate();
     });
   }
@@ -63,9 +66,8 @@ class FilterLink extends Component {
   };
 
   render() {
-    const state = this.props.store.getState();
-    const props = this.props;
-    const active = state.visibilityFilter === props.filter;
+    const state = this.context.getState();
+    const active = state.visibilityFilter === this.props.filter;
     return (
       <Link active={active} onClick={this.onClick}>
         {this.props.children}
@@ -73,8 +75,11 @@ class FilterLink extends Component {
     );
   }
 }
-const AddTodo = ({ store }) => {
+FilterLink.contextType = Store;
+
+const AddTodo = () => {
   let input;
+  const store = useContext(Store);
   return (
     <>
       <input ref={(node) => (input = node)} />
@@ -97,7 +102,6 @@ const AddTodo = ({ store }) => {
 const NavLinks = ({ filters, currentFilter, onClick, store }) => {
   return filters.map((item) => (
     <FilterLink
-      store={store}
       filter={item.value}
       key={item.value}
       currentFilter={currentFilter}
@@ -108,7 +112,8 @@ const NavLinks = ({ filters, currentFilter, onClick, store }) => {
   ));
 };
 
-const NavLinksContainer = ({ store }) => {
+const NavLinksContainer = () => {
+  const store = useContext(Store);
   const { visibilityFilter } = store.getState();
   const filters = [
     { value: "SHOW_ALL", text: "All" },
@@ -118,7 +123,6 @@ const NavLinksContainer = ({ store }) => {
 
   return (
     <NavLinks
-      store={store}
       filters={filters}
       currentFilter={visibilityFilter}
       onClick={(filter) => {
@@ -133,7 +137,8 @@ const NavLinksContainer = ({ store }) => {
 
 class TodoListContainer extends Component {
   componentDidMount() {
-    this.unsubscribe = this.props.store.subscribe = () => {
+    const store = this.context;
+    this.unsubscribe = store.subscribe = () => {
       this.forceUpdate();
     };
   }
@@ -143,28 +148,32 @@ class TodoListContainer extends Component {
   }
 
   render() {
-    const store = this.props.store;
-    const state = store.getState();
+    const store = this.context;
+    const { todos, visibilityFilter } = store.getState();
     return (
       <TodoList
-        todos={getVisibleTodos(state.todos, state.visibilityFilter)}
+        todos={getVisibleTodos(todos, visibilityFilter)}
         onTodoClick={(id) => store.dispatch({ type: "TOGGLE_TODO", id })}
       />
     );
   }
 }
 
-const App = ({ store }) => {
+TodoListContainer.contextType = Store;
+
+const App = () => {
   return (
     <div>
-      <AddTodo store={store} />
-      <NavLinksContainer store={store} />
-      <TodoListContainer store={store} />
+      <AddTodo />
+      <NavLinksContainer />
+      <TodoListContainer />
     </div>
   );
 };
 
 ReactDOM.render(
-  <App store={createStore(Store)} />,
+  <Store.Provider value={createStore(Reducer)}>
+    <App />
+  </Store.Provider>,
   document.getElementById("root")
 );
