@@ -3,8 +3,7 @@ import Reducer from "./reducers";
 import ReactDOM from "react-dom";
 import "./styles.css";
 import { Component } from "react";
-import { createContext, useContext } from "react";
-const Store = createContext();
+import { Provider, connect } from "react-redux";
 
 const Todo = ({ completed, onClick, text }) => (
   <li
@@ -50,24 +49,12 @@ const Link = ({ active, onClick, children }) => {
 };
 
 class FilterLink extends Component {
-  componentDidMount() {
-    const store = this.context;
-    this.unsubscribe = store.subscribe(() => {
-      this.forceUpdate();
-    });
-  }
-
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
-
   onClick = () => {
     this.props.onClick(this.props.filter);
   };
 
   render() {
-    const state = this.context.getState();
-    const active = state.visibilityFilter === this.props.filter;
+    const active = this.props.visibilityFilter === this.props.filter;
     return (
       <Link active={active} onClick={this.onClick}>
         {this.props.children}
@@ -75,29 +62,29 @@ class FilterLink extends Component {
     );
   }
 }
-FilterLink.contextType = Store;
 
-const AddTodo = () => {
+const AddTodo = ({ onClick }) => {
   let input;
-  const store = useContext(Store);
   return (
     <>
       <input ref={(node) => (input = node)} />
-      <button
-        onClick={() => {
-          store.dispatch({
-            type: "ADD_TODO",
-            id: store.getState().counter,
-            text: input.value
-          });
-          input.value = "";
-        }}
-      >
-        Add Todo
-      </button>
+      <button onClick={() => onClick(input)}>Add Todo</button>
     </>
   );
 };
+
+const AddTotoContainer = connect(null, (dispatch) => {
+  return {
+    onClick: (input) => {
+      store.dispatch({
+        type: "ADD_TODO",
+        id: store.getState().counter,
+        text: input.value
+      });
+      input.value = "";
+    }
+  };
+})(AddTodo);
 
 const NavLinks = ({ filters, currentFilter, onClick, store }) => {
   return filters.map((item) => (
@@ -112,68 +99,68 @@ const NavLinks = ({ filters, currentFilter, onClick, store }) => {
   ));
 };
 
-const NavLinksContainer = () => {
-  const store = useContext(Store);
-  const { visibilityFilter } = store.getState();
-  const filters = [
-    { value: "SHOW_ALL", text: "All" },
-    { value: "SHOW_COMPLETED", text: "Completed" },
-    { value: "SHOW_ACTIVE", text: "Active" }
-  ];
-
-  return (
-    <NavLinks
-      filters={filters}
-      currentFilter={visibilityFilter}
-      onClick={(filter) => {
-        store.dispatch({
-          type: "SET_VISIBILITY_FILTER",
-          filter
-        });
-      }}
-    />
-  );
+const mapStateToPropsForNavLinks = ({ visibilityFilter }) => {
+  return {
+    currentFilter: visibilityFilter,
+    filters: [
+      { value: "SHOW_ALL", text: "All" },
+      { value: "SHOW_COMPLETED", text: "Completed" },
+      { value: "SHOW_ACTIVE", text: "Active" }
+    ]
+  };
 };
 
-class TodoListContainer extends Component {
-  componentDidMount() {
-    const store = this.context;
-    this.unsubscribe = store.subscribe = () => {
-      this.forceUpdate();
-    };
-  }
+const mapDispatchToPropsForNavLinks = (dispatch) => {
+  return {
+    onClick: (filter) => {
+      dispatch({
+        type: "SET_VISIBILITY_FILTER",
+        filter
+      });
+    }
+  };
+};
 
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
+const NavLinksContainer = connect(
+  mapStateToPropsForNavLinks,
+  mapDispatchToPropsForNavLinks
+)(NavLinks);
 
-  render() {
-    const store = this.context;
-    const { todos, visibilityFilter } = store.getState();
-    return (
-      <TodoList
-        todos={getVisibleTodos(todos, visibilityFilter)}
-        onTodoClick={(id) => store.dispatch({ type: "TOGGLE_TODO", id })}
-      />
-    );
-  }
-}
+const mapStateToPropsForTodos = (state) => {
+  return {
+    todos: getVisibleTodos(state.todos, state.visibilityFilter)
+  };
+};
 
-TodoListContainer.contextType = Store;
+const mapDispatchToPropsforTodos = (dispatch) => {
+  return {
+    onTodoClick: (id) => dispatch({ type: "TOGGLE_TODO", id })
+  };
+};
+
+const TodoListContainer = connect(
+  mapStateToPropsForTodos,
+  mapDispatchToPropsforTodos
+)(TodoList);
 
 const App = () => {
   return (
     <div>
-      <AddTodo />
+      <AddTotoContainer />
       <NavLinksContainer />
       <TodoListContainer />
     </div>
   );
 };
 
+const store = createStore(Reducer);
 ReactDOM.render(
-  <Store.Provider value={createStore(Reducer)}>
+  <Provider store={store}>
     <App />
-  </Store.Provider>,
+  </Provider>,
   document.getElementById("root")
 );
+
+store.subscribe(() => {
+  console.log(store.getState());
+});
