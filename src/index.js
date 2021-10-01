@@ -8,6 +8,7 @@ const Link = ({ active, onClick, children }) => {
   if (active) {
     return <span>{children}</span>;
   }
+
   return (
     <button
       href="#"
@@ -27,13 +28,17 @@ const mapStateToPropsForNavLinks = (state, ownProps) => {
   };
 };
 
+const setVisibilityFilterActionCreator = (filter) => {
+  return {
+    type: "SET_VISIBILITY_FILTER",
+    filter: filter
+  };
+};
+
 const mapDispatchToPropsForNavLinks = (dispatch, ownProps) => {
   return {
     onClick: () => {
-      dispatch({
-        type: "SET_VISIBILITY_FILTER",
-        filter: ownProps.filter
-      });
+      dispatch(setVisibilityFilterActionCreator(ownProps.filter));
     }
   };
 };
@@ -97,9 +102,13 @@ const mapStateToPropsForTodos = (state) => {
   };
 };
 
+const toggleActionCreator = (id) => {
+  return { type: "TOGGLE_TODO", id };
+};
+
 const mapDispatchToPropsforTodos = (dispatch) => {
   return {
-    onTodoClick: (id) => dispatch({ type: "TOGGLE_TODO", id })
+    onTodoClick: (id) => dispatch(toggleActionCreator(id))
   };
 };
 
@@ -108,6 +117,14 @@ const TodoListContainer = connect(
   mapDispatchToPropsforTodos
 )(TodoList);
 
+const addTodoActionCreator = (value) => {
+  return {
+    type: "ADD_TODO",
+    id: store.getState().counter,
+    text: value
+  };
+};
+
 const AddTodo = ({ dispatch }) => {
   let input;
   return (
@@ -115,11 +132,7 @@ const AddTodo = ({ dispatch }) => {
       <input ref={(node) => (input = node)} />
       <button
         onClick={() => {
-          dispatch({
-            type: "ADD_TODO",
-            id: store.getState().counter,
-            text: input.value
-          });
+          dispatch(addTodoActionCreator(input.value));
           input.value = "";
         }}
       >
