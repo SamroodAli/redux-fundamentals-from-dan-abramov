@@ -2,8 +2,68 @@ import { createStore } from "redux";
 import Reducer from "./reducers";
 import ReactDOM from "react-dom";
 import "./styles.css";
-import { Component } from "react";
 import { Provider, connect } from "react-redux";
+
+const Link = ({ active, onClick, children }) => {
+  if (active) {
+    return <span>{children}</span>;
+  }
+  return (
+    <button
+      href="#"
+      onClick={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+    >
+      {children}
+    </button>
+  );
+};
+
+const mapStateToPropsForNavLinks = (state, ownProps) => {
+  return {
+    active: state.visibilityFilter === ownProps.filter
+  };
+};
+
+const mapDispatchToPropsForNavLinks = (dispatch, ownProps) => {
+  return {
+    onClick: () => {
+      dispatch({
+        type: "SET_VISIBILITY_FILTER",
+        filter: ownProps.filter
+      });
+    }
+  };
+};
+
+const FilterLink = ({ active, onClick, children }) => {
+  return (
+    <Link active={active} onClick={onClick}>
+      {children}
+    </Link>
+  );
+};
+
+const FilterLinksContainer = connect(
+  mapStateToPropsForNavLinks,
+  mapDispatchToPropsForNavLinks
+)(FilterLink);
+
+const NavLinks = () => {
+  const filters = [
+    { value: "SHOW_ALL", text: "All" },
+    { value: "SHOW_COMPLETED", text: "Completed" },
+    { value: "SHOW_ACTIVE", text: "Active" }
+  ];
+
+  return filters.map((item) => (
+    <FilterLinksContainer key={item.value} filter={item.value}>
+      {item.text}
+    </FilterLinksContainer>
+  ));
+};
 
 const Todo = ({ completed, onClick, text }) => (
   <li
@@ -31,101 +91,6 @@ const TodoList = ({ todos, onTodoClick }) => {
   ));
 };
 
-const Link = ({ active, onClick, children }) => {
-  if (active) {
-    return <span>{children}</span>;
-  }
-  return (
-    <button
-      href="#"
-      onClick={(e) => {
-        e.preventDefault();
-        onClick();
-      }}
-    >
-      {children}
-    </button>
-  );
-};
-
-class FilterLink extends Component {
-  onClick = () => {
-    this.props.onClick(this.props.filter);
-  };
-
-  render() {
-    const active = this.props.visibilityFilter === this.props.filter;
-    return (
-      <Link active={active} onClick={this.onClick}>
-        {this.props.children}
-      </Link>
-    );
-  }
-}
-
-const AddTodo = ({ onClick }) => {
-  let input;
-  return (
-    <>
-      <input ref={(node) => (input = node)} />
-      <button onClick={() => onClick(input)}>Add Todo</button>
-    </>
-  );
-};
-
-const AddTotoContainer = connect(null, (dispatch) => {
-  return {
-    onClick: (input) => {
-      store.dispatch({
-        type: "ADD_TODO",
-        id: store.getState().counter,
-        text: input.value
-      });
-      input.value = "";
-    }
-  };
-})(AddTodo);
-
-const NavLinks = ({ filters, currentFilter, onClick, store }) => {
-  return filters.map((item) => (
-    <FilterLink
-      filter={item.value}
-      key={item.value}
-      currentFilter={currentFilter}
-      onClick={onClick}
-    >
-      {item.text}
-    </FilterLink>
-  ));
-};
-
-const mapStateToPropsForNavLinks = ({ visibilityFilter }) => {
-  return {
-    currentFilter: visibilityFilter,
-    filters: [
-      { value: "SHOW_ALL", text: "All" },
-      { value: "SHOW_COMPLETED", text: "Completed" },
-      { value: "SHOW_ACTIVE", text: "Active" }
-    ]
-  };
-};
-
-const mapDispatchToPropsForNavLinks = (dispatch) => {
-  return {
-    onClick: (filter) => {
-      dispatch({
-        type: "SET_VISIBILITY_FILTER",
-        filter
-      });
-    }
-  };
-};
-
-const NavLinksContainer = connect(
-  mapStateToPropsForNavLinks,
-  mapDispatchToPropsForNavLinks
-)(NavLinks);
-
 const mapStateToPropsForTodos = (state) => {
   return {
     todos: getVisibleTodos(state.todos, state.visibilityFilter)
@@ -143,11 +108,34 @@ const TodoListContainer = connect(
   mapDispatchToPropsforTodos
 )(TodoList);
 
+const AddTodo = ({ dispatch }) => {
+  let input;
+  return (
+    <>
+      <input ref={(node) => (input = node)} />
+      <button
+        onClick={() => {
+          dispatch({
+            type: "ADD_TODO",
+            id: store.getState().counter,
+            text: input.value
+          });
+          input.value = "";
+        }}
+      >
+        Add Todo
+      </button>
+    </>
+  );
+};
+
+const AddTotoContainer = connect()(AddTodo);
+
 const App = () => {
   return (
     <div>
       <AddTotoContainer />
-      <NavLinksContainer />
+      <NavLinks />
       <TodoListContainer />
     </div>
   );
