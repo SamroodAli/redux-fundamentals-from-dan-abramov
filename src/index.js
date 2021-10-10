@@ -1,7 +1,6 @@
 import { createStore } from "redux";
 import Reducer from "./reducers";
 import ReactDOM from "react-dom";
-import "./styles.css";
 import { Provider, connect } from "react-redux";
 
 const Link = ({ active, onClick, children }) => {
